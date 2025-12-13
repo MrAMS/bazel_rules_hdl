@@ -264,7 +264,6 @@ def openroad_command(ctx, commands, input_db = None, step_name = None, inputs = 
             "-exit",
             "-log",
             log_file.path,
-            "-quiet",
             command_file.path,
         ],
         executable = ctx.executable._openroad,
