@@ -1,0 +1,64 @@
+name: 📦 Package Tools with Submodules
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+      - "snapshot-*"
+
+jobs:
+  package-submodule-tools:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: 1. 🏁 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 2. 🏷️ Generate Release Tag
+        id: generate_tag
+        run: |
+          DATE=$(date +%Y%m%d)
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          TAG_NAME="snapshot-${DATE}-${SHORT_SHA}"
+          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+
+      - name: 3. 🔍 Identify Tools with Submodules
+        id: scan_tools
+        run: |
+          python3 .github/workflows/scan_submodule_tools.py > /tmp/tools_info.json
+          cat /tmp/tools_info.json
+
+      - name: 4. 📦 Package Tools with Submodules
+        id: package_tools
+        run: |
+          python3 .github/workflows/package_tools.py \
+            /tmp/tools_info.json \
+            /tmp/packages \
+            "${{ steps.generate_tag.outputs.tag_name }}"
+
+      - name: 5. 🚀 Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG_NAME="${{ steps.generate_tag.outputs.tag_name }}"
+
+          # Generate release notes
+          python3 .github/workflows/generate_release_notes.py \
+            /tmp/packages \
+            "$TAG_NAME" \
+            "${{ github.repository }}" > /tmp/release_notes.md
+
+          # Delete existing release if present
+          gh release delete "$TAG_NAME" --yes --cleanup-tag 2>/dev/null || true
+
+          # Create release with all packages
+          gh release create "$TAG_NAME" \
+            --notes-file /tmp/release_notes.md \
+            --title "Snapshot $TAG_NAME" \
+            /tmp/packages/*
+
+          echo "✅ Release created successfully!"
