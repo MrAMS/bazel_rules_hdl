@@ -64,6 +64,28 @@ def calculate_integrity(tarball_path: Path) -> str:
     hash_base64 = base64.b64encode(hash_bytes).decode('ascii')
     return f"sha256-{hash_base64}"
 
+def calculate_github_archive_integrity(owner: str, repo: str, commit: str) -> str:
+    """Download GitHub archive and calculate its integrity hash."""
+    import tempfile
+    import urllib.request
+
+    archive_url = f"https://github.com/{owner}/{repo}/archive/{commit}.tar.gz"
+
+    # Download to temp file
+    with tempfile.NamedTemporaryFile(delete=False) as tmp:
+        tmp_path = Path(tmp.name)
+        try:
+            print(f"  Downloading {archive_url}...", file=sys.stderr)
+            urllib.request.urlretrieve(archive_url, tmp_path)
+
+            # Calculate integrity
+            integrity = calculate_integrity(tmp_path)
+            return integrity
+        finally:
+            # Cleanup
+            if tmp_path.exists():
+                tmp_path.unlink()
+
 def package_tool(tool: dict, output_dir: Path, tag_name: str) -> dict:
     """Package a tool and return package info."""
     module_name = tool['module_name']
@@ -139,12 +161,41 @@ def main():
         except Exception as e:
             print(f"❌ Failed to package {tool['module_name']}: {e}", file=sys.stderr)
 
+    # Calculate integrity for tools without submodules
+    no_submodule_integrities = []
+    for tool in tools_info['without_submodules']:
+        try:
+            module_name = tool['module_name']
+            owner = tool['owner']
+            repo = tool['repo']
+            commit = tool['commit']
+
+            print(f"🔢 Calculating integrity for {module_name}...", file=sys.stderr)
+            integrity = calculate_github_archive_integrity(owner, repo, commit)
+            print(f"✅ {module_name}: {integrity}", file=sys.stderr)
+
+            no_submodule_integrities.append({
+                'module_name': module_name,
+                'owner': owner,
+                'repo': repo,
+                'commit': commit,
+                'integrity': integrity
+            })
+        except Exception as e:
+            print(f"❌ Failed to calculate integrity for {tool['module_name']}: {e}", file=sys.stderr)
+
     # Write package info
     packages_json = output_dir / 'packages.json'
     with open(packages_json, 'w') as f:
         json.dump(packages, f, indent=2)
 
-    print(f"\n✅ Packaged {len(packages)} tools", file=sys.stderr)
+    # Write integrity info for tools without submodules
+    integrities_json = output_dir / 'no_submodule_integrities.json'
+    with open(integrities_json, 'w') as f:
+        json.dump(no_submodule_integrities, f, indent=2)
+
+    print(f"\n✅ Packaged {len(packages)} tools with submodules", file=sys.stderr)
+    print(f"✅ Calculated integrity for {len(no_submodule_integrities)} tools without submodules", file=sys.stderr)
 
 if __name__ == '__main__':
     main()

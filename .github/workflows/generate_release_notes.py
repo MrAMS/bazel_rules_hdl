@@ -26,8 +26,18 @@ def main():
     with open(packages_json) as f:
         packaged_tools = json.load(f)
 
+    # Load integrity info for tools without submodules
+    integrities_json = packages_dir / 'no_submodule_integrities.json'
+    no_submodule_integrities = []
+    if integrities_json.exists():
+        with open(integrities_json) as f:
+            no_submodule_integrities = json.load(f)
+
     # Create lookup dict for packaged tools
     packaged_lookup = {pkg['module_name']: pkg for pkg in packaged_tools}
+
+    # Create lookup dict for no-submodule integrities
+    integrity_lookup = {item['module_name']: item for item in no_submodule_integrities}
 
     # Generate release notes
     notes = f"""Automated CI release - archive_override for all git_override tools.
@@ -42,14 +52,16 @@ This release provides **archive_override** configurations for ALL tools that use
 """
 
     for tool in tools_info['with_submodules']:
-        notes += f"- **{tool['module_name']}** (commit `{tool['commit'][:7]}`)\n"
+        commit_url = f"https://github.com/{tool['owner']}/{tool['repo']}/commit/{tool['commit']}"
+        notes += f"- **{tool['module_name']}** (commit [`{tool['commit'][:7]}`]({commit_url}))\n"
 
     notes += f"""
 ### Tools WITHOUT Submodules (using GitHub archive URLs)
 """
 
     for tool in tools_info['without_submodules']:
-        notes += f"- **{tool['module_name']}** (commit `{tool['commit'][:7]}`)\n"
+        commit_url = f"https://github.com/{tool['owner']}/{tool['repo']}/commit/{tool['commit']}"
+        notes += f"- **{tool['module_name']}** (commit [`{tool['commit'][:7]}`]({commit_url}))\n"
 
     notes += f"""
 
@@ -99,7 +111,21 @@ archive_override(
         archive_url = f"https://github.com/{owner}/{repo}/archive/{commit}.tar.gz"
         strip_prefix = f"{repo}-{commit}"
 
-        notes += f"""bazel_dep(name = "{module_name}", version = "1.0.0")
+        # Check if we have pre-calculated integrity
+        if module_name in integrity_lookup:
+            integrity = integrity_lookup[module_name]['integrity']
+            notes += f"""bazel_dep(name = "{module_name}", version = "1.0.0")
+archive_override(
+    module_name = "{module_name}",
+    urls = ["{archive_url}"],
+    strip_prefix = "{strip_prefix}",
+    integrity = "{integrity}",
+)
+
+"""
+        else:
+            # Fallback: no integrity available
+            notes += f"""bazel_dep(name = "{module_name}", version = "1.0.0")
 archive_override(
     module_name = "{module_name}",
     urls = ["{archive_url}"],
@@ -122,8 +148,8 @@ archive_override(
 
 ### For Tools WITHOUT Submodules
 - Direct GitHub archive URLs are provided
-- **No integrity hash calculated** - you should calculate and add it yourself for security
-- Integrity calculation command provided in comments
+- **Integrity hashes are pre-calculated** by CI for security and reproducibility
+- Ready to use - just copy the `archive_override` block
 
 ### Why Use archive_override?
 - ✅ **Much faster** in CI/CD environments (no git operations)
@@ -140,8 +166,8 @@ archive_override(
    - Created tarballs excluding `.git` directories
    - Calculated `sha256-base64` integrity hashes
 4. **For tools WITHOUT submodules:**
-   - Generated direct GitHub archive URLs
-   - Left integrity hash calculation to users
+   - Downloaded GitHub archive URLs
+   - Calculated `sha256-base64` integrity hashes
 
 ---
 
