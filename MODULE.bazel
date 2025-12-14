@@ -70,70 +70,71 @@ bazel_dep(name = "googletest", version = "1.17.0", dev_dependency = True)
 git_override(
     module_name = "p7zip",
     commit = "be778d8e29b3f21bd3b0c661be0d4f4ab49d3ffa",
-    remote = "https://github.com/amorphic-io/7zip.git",
+    remote = "https://github.com/MrAMS/7zip.git",
 )
 
 git_override(
     module_name = "prjtrellis",
     commit = "3332d029295a8e424969126f5c61a5ea111882a8",
-    remote = "https://github.com/amorphic-io/prjtrellis.git",
+    remote = "https://github.com/MrAMS/prjtrellis.git",
 )
 
 git_override(
     module_name = "icestorm",
     commit = "85fd1682b58581b82d1d14f63c089fb033177c21",
-    remote = "https://github.com/amorphic-io/icestorm.git",
+    remote = "https://github.com/MrAMS/icestorm.git",
 )
 
 git_override(
     module_name = "nextpnr",
     commit = "2ab1f5e7e6be52e2a59347cace86f5c16348a115",
-    remote = "https://github.com/amorphic-io/nextpnr.git",
+    remote = "https://github.com/MrAMS/nextpnr.git",
 )
 
 git_override(
     module_name = "cxxopts",
     commit = "0fc4bdab71ea25e3623e2b609b4e5b2bd20bb938",
-    remote = "https://github.com/amorphic-io/cxxopts.git",
+    remote = "https://github.com/MrAMS/cxxopts.git",
 )
 
 git_override(
     module_name = "yosys",
     commit = "590ad236368e41af3de4ea8252811beeaadb5f97",
     init_submodules = True,
-    remote = "https://github.com/amorphic-io/yosys.git",
+    remote = "https://github.com/MrAMS/yosys.git",
 )
 
 git_override(
     module_name = "swig",
     commit = "52ed25274e9042611bda40c42e48aae8b6748686",
-    remote = "https://github.com/amorphic-io/swig.git",
+    remote = "https://github.com/MrAMS/swig.git",
 )
 
 git_override(
     module_name = "iverilog",
     commit = "760dfa28d8f863164a2fbbaabebd1202850249c8",
-    remote = "https://github.com/amorphic-io/iverilog.git",
+    remote = "https://github.com/MrAMS/iverilog.git",
 )
 
 git_override(
     module_name = "lemon",
     commit = "f8be7b96fbdfa789a4dae0429967b7724e89d5f5",
-    remote = "https://github.com/amorphic-io/lemon",
+    remote = "https://github.com/MrAMS/lemon",
 )
 
 git_override(
     module_name = "abc",
     commit = "2fa8f6e551a85da586fbe01792e6cfdaa7ce72cc",
-    remote = "https://github.com/amorphic-io/abc",
+    remote = "https://github.com/MrAMS/abc",
 )
 
 git_override(
     module_name = "ncurses",
     commit = "f918fafc9f7aeb1745d02e7978597abf8e580de2",
-    remote = "https://github.com/amorphic-io/ncurses",
+    remote = "https://github.com/MrAMS/ncurses",
 )
 
+# tcl - keep amorphic-io fork
 git_override(
     module_name = "tcl",
     commit = "e285aca41d39e84ab1753f125b095d65a0e15640",
