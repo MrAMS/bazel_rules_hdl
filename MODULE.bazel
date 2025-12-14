@@ -143,8 +143,8 @@ git_override(
 
 archive_override(
     module_name = "openroad",
-    urls = ["https://github.com/MrAMS/OpenROAD/releases/download/snapshot-20251213-8045df3/snapshot-20251213-8045df3.tar.gz"],
     integrity = "sha256-dqm5iPTLyaiOud1Mtv8KnLUA5e91/3JoxO8WWLz+cHI=",
+    urls = ["https://github.com/MrAMS/OpenROAD/releases/download/snapshot-20251213-8045df3/snapshot-20251213-8045df3.tar.gz"],
 )
 
 git_override(
