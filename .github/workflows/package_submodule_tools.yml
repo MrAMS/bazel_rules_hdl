@@ -7,7 +7,7 @@ on:
       - "feat/**"
     tags:
       - "v*"
-      - "snapshot-*"
+      - "release-*"
 
 jobs:
   package-submodule-tools:
@@ -24,7 +24,7 @@ jobs:
         run: |
           DATE=$(date +%Y%m%d)
           SHORT_SHA=$(git rev-parse --short HEAD)
-          TAG_NAME="snapshot-${DATE}-${SHORT_SHA}"
+          TAG_NAME="release-${DATE}-${SHORT_SHA}"
           echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
 
       - name: 3. 🔍 Identify Tools with Submodules
@@ -47,9 +47,10 @@ jobs:
         run: |
           TAG_NAME="${{ steps.generate_tag.outputs.tag_name }}"
 
-          # Generate release notes
+          # Generate release notes with ALL tools info
           python3 .github/workflows/generate_release_notes.py \
             /tmp/packages \
+            /tmp/tools_info.json \
             "$TAG_NAME" \
             "${{ github.repository }}" > /tmp/release_notes.md
 
@@ -59,7 +60,7 @@ jobs:
           # Create release with all packages
           gh release create "$TAG_NAME" \
             --notes-file /tmp/release_notes.md \
-            --title "Snapshot $TAG_NAME" \
+            --title "Rules HDL Release $TAG_NAME" \
             /tmp/packages/*
 
           echo "✅ Release created successfully!"

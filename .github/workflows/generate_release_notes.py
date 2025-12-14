@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Generate release notes with archive_override examples for all packaged tools.
+Generate release notes with archive_override examples for ALL tools from git_override.
 """
 
 import json
@@ -8,32 +8,48 @@ import sys
 from pathlib import Path
 
 def main():
-    if len(sys.argv) != 4:
-        print("Usage: generate_release_notes.py <packages_dir> <tag_name> <repository>", file=sys.stderr)
+    if len(sys.argv) != 5:
+        print("Usage: generate_release_notes.py <packages_dir> <tools_info_json> <tag_name> <repository>", file=sys.stderr)
         sys.exit(1)
 
     packages_dir = Path(sys.argv[1])
-    tag_name = sys.argv[2]
-    repository = sys.argv[3]
+    tools_info_path = Path(sys.argv[2])
+    tag_name = sys.argv[3]
+    repository = sys.argv[4]
 
-    # Load packages info
+    # Load tools info (all git_override tools)
+    with open(tools_info_path) as f:
+        tools_info = json.load(f)
+
+    # Load packaged tools (tools with submodules)
     packages_json = packages_dir / 'packages.json'
     with open(packages_json) as f:
-        packages = json.load(f)
+        packaged_tools = json.load(f)
+
+    # Create lookup dict for packaged tools
+    packaged_lookup = {pkg['module_name']: pkg for pkg in packaged_tools}
 
     # Generate release notes
-    notes = f"""Automated CI release for tools with git submodules.
+    notes = f"""Automated CI release - archive_override for all git_override tools.
 
 ---
 
-## 📦 Packaged Tools
+## 📦 What's Included
 
-This release contains archive snapshots of the following tools **with their submodules included**:
+This release provides **archive_override** configurations for ALL tools that use `git_override` in MODULE.bazel:
 
+### Tools WITH Submodules (pre-packaged with submodules included)
 """
 
-    for pkg in packages:
-        notes += f"- **{pkg['module_name']}** (commit `{pkg['commit'][:7]}`)\n"
+    for tool in tools_info['with_submodules']:
+        notes += f"- **{tool['module_name']}** (commit `{tool['commit'][:7]}`)\n"
+
+    notes += f"""
+### Tools WITHOUT Submodules (using GitHub archive URLs)
+"""
+
+    for tool in tools_info['without_submodules']:
+        notes += f"- **{tool['module_name']}** (commit `{tool['commit'][:7]}`)\n"
 
     notes += f"""
 
@@ -41,21 +57,55 @@ This release contains archive snapshots of the following tools **with their subm
 
 ## 🚀 Usage in Your Project
 
-Instead of using `git_override` (which is slow for CI), you can use `archive_override` with these pre-packaged archives:
+Replace `git_override` with `archive_override` for faster CI builds:
 
 ```bzl
 """
 
-    for pkg in packages:
-        url = f"https://github.com/{repository}/releases/download/{tag_name}/{pkg['tarball_name']}"
-        notes += f"""
-# {pkg['module_name']} - archive with submodules included
-bazel_dep(name = "{pkg['module_name']}", version = "1.0.0")
+    # First output tools WITH submodules (from packaged archives)
+    notes += """# =============================================================================
+# Tools WITH submodules - use CI-packaged archives
+# =============================================================================
+
+"""
+    for tool in tools_info['with_submodules']:
+        module_name = tool['module_name']
+        if module_name in packaged_lookup:
+            pkg = packaged_lookup[module_name]
+            url = f"https://github.com/{repository}/releases/download/{tag_name}/{pkg['tarball_name']}"
+            notes += f"""bazel_dep(name = "{module_name}", version = "1.0.0")
 archive_override(
-    module_name = "{pkg['module_name']}",
+    module_name = "{module_name}",
     urls = ["{url}"],
     strip_prefix = "{pkg['strip_prefix']}",
     integrity = "{pkg['integrity']}",
+)
+
+"""
+
+    # Then output tools WITHOUT submodules (direct GitHub archive)
+    notes += """# =============================================================================
+# Tools WITHOUT submodules - use direct GitHub archive
+# =============================================================================
+
+"""
+    for tool in tools_info['without_submodules']:
+        module_name = tool['module_name']
+        owner = tool['owner']
+        repo = tool['repo']
+        commit = tool['commit']
+
+        # Use GitHub's archive URL
+        archive_url = f"https://github.com/{owner}/{repo}/archive/{commit}.tar.gz"
+        strip_prefix = f"{repo}-{commit}"
+
+        notes += f"""bazel_dep(name = "{module_name}", version = "1.0.0")
+archive_override(
+    module_name = "{module_name}",
+    urls = ["{archive_url}"],
+    strip_prefix = "{strip_prefix}",
+    # Note: No integrity hash provided for GitHub archives
+    # You can calculate it with: curl -L <url> | sha256sum | xxd -r -p | base64 -w0
 )
 
 """
@@ -66,17 +116,32 @@ archive_override(
 
 ## 📝 Notes
 
-- All archives include **initialized submodules**
-- These archives are suitable for CI/CD environments where git operations are slow
-- For development, you may prefer using `git_override` for easier iteration
+### For Tools WITH Submodules
+- Pre-packaged archives include **all submodules initialized**
+- These are ready to use - just copy the `archive_override` block
+
+### For Tools WITHOUT Submodules
+- Direct GitHub archive URLs are provided
+- **No integrity hash calculated** - you should calculate and add it yourself for security
+- Integrity calculation command provided in comments
+
+### Why Use archive_override?
+- ✅ **Much faster** in CI/CD environments (no git operations)
+- ✅ **Reproducible** builds with integrity hashes
+- ✅ **No git required** in build environment
+- ❌ Less convenient for active development (prefer `git_override` for development)
 
 ## ⚙️ How This Release Was Generated
 
-1. Scanned `MODULE.bazel` for `git_override` declarations
+1. Scanned `MODULE.bazel` for all `git_override` declarations
 2. Checked each repository for `.gitmodules` file
-3. Cloned repositories with `--recursive` submodule initialization
-4. Created tarballs excluding `.git` directories
-5. Calculated `sha256-base64` integrity hashes for Bazel bzlmod
+3. **For tools WITH submodules:**
+   - Cloned with `git clone --recursive`
+   - Created tarballs excluding `.git` directories
+   - Calculated `sha256-base64` integrity hashes
+4. **For tools WITHOUT submodules:**
+   - Generated direct GitHub archive URLs
+   - Left integrity hash calculation to users
 
 ---
 
