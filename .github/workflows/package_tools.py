@@ -81,6 +81,13 @@ def package_tool(tool: dict, output_dir: Path, tag_name: str) -> dict:
         # Clone with submodules
         clone_dir = clone_with_submodules(owner, repo, commit, temp_dir)
 
+        # Rename directory to match strip_prefix (repo-commit)
+        target_dirname = f"{repo}-{commit}"
+        target_dir = temp_dir / target_dirname
+        if clone_dir != target_dir:
+            clone_dir.rename(target_dir)
+            clone_dir = target_dir
+
         # Create tarball
         tarball_name = f"{module_name}-{tag_name}.tar.gz"
         tarball_path = output_dir / tarball_name
@@ -100,7 +107,7 @@ def package_tool(tool: dict, output_dir: Path, tag_name: str) -> dict:
             'tarball_name': tarball_name,
             'integrity': integrity,
             'commit': commit,
-            'strip_prefix': f"{repo}-{commit}"
+            'strip_prefix': target_dirname  # Use the renamed directory name
         }
 
     finally:
