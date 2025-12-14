@@ -141,10 +141,10 @@ git_override(
     remote = "https://github.com/amorphic-io/tcl.git",
 )
 
-archive_override(
+git_override(
     module_name = "openroad",
-    integrity = "sha256-dqm5iPTLyaiOud1Mtv8KnLUA5e91/3JoxO8WWLz+cHI=",
-    urls = ["https://github.com/MrAMS/OpenROAD/releases/download/snapshot-20251213-8045df3/snapshot-20251213-8045df3.tar.gz"],
+    commit = "40eb7b12dc4f2c773af97c956cf3014038faad3c",
+    remote = "https://github.com/MrAMS/OpenROAD.git",
 )
 
 git_override(
