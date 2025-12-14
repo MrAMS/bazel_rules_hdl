@@ -69,56 +69,56 @@ bazel_dep(name = "googletest", version = "1.17.0", dev_dependency = True)
 # It's still necessary to override them here.
 git_override(
     module_name = "p7zip",
-    commit = "be778d8e29b3f21bd3b0c661be0d4f4ab49d3ffa",
+    commit = "f4490229090f8da4ba188c67bdede3b845d7a0bc",
     remote = "https://github.com/MrAMS/7zip.git",
 )
 
 git_override(
     module_name = "prjtrellis",
-    commit = "3332d029295a8e424969126f5c61a5ea111882a8",
+    commit = "2c62504f499c7a0642a2142f4c76c309a89f2785",
     remote = "https://github.com/MrAMS/prjtrellis.git",
 )
 
 git_override(
     module_name = "icestorm",
-    commit = "85fd1682b58581b82d1d14f63c089fb033177c21",
+    commit = "03cc0386e180581f0ede94bc83bf9290875bfdbf",
     remote = "https://github.com/MrAMS/icestorm.git",
 )
 
 git_override(
     module_name = "nextpnr",
-    commit = "2ab1f5e7e6be52e2a59347cace86f5c16348a115",
+    commit = "d3aa4468008b46f0c8fc46f1f57bbe6672cbad29",
     remote = "https://github.com/MrAMS/nextpnr.git",
 )
 
 git_override(
     module_name = "cxxopts",
-    commit = "0fc4bdab71ea25e3623e2b609b4e5b2bd20bb938",
+    commit = "f5298b3614d974ff4603dec0de0aa999fce3a6ae",
     remote = "https://github.com/MrAMS/cxxopts.git",
 )
 
 git_override(
     module_name = "yosys",
-    commit = "590ad236368e41af3de4ea8252811beeaadb5f97",
+    commit = "bc10071628f6f01a20ca8e14b9695c8576369591",
     init_submodules = True,
     remote = "https://github.com/MrAMS/yosys.git",
 )
 
 git_override(
     module_name = "swig",
-    commit = "52ed25274e9042611bda40c42e48aae8b6748686",
+    commit = "64b28ef632d8ca12db479c214bc7aa0fc9eb9d12",
     remote = "https://github.com/MrAMS/swig.git",
 )
 
 git_override(
     module_name = "iverilog",
-    commit = "760dfa28d8f863164a2fbbaabebd1202850249c8",
+    commit = "5a8b87aaaa6e4f85bdf7e7ed82b581ffc64cb2dd",
     remote = "https://github.com/MrAMS/iverilog.git",
 )
 
 git_override(
     module_name = "lemon",
-    commit = "f8be7b96fbdfa789a4dae0429967b7724e89d5f5",
+    commit = "685fa0c61eec87eb5b70985487ad72f76c35c3bb",
     remote = "https://github.com/MrAMS/lemon",
 )
 
