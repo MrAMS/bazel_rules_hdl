@@ -66,48 +66,99 @@ jobs:
           echo "integrity_string=$INTEGRITY_STRING" >> $GITHUB_OUTPUT
           echo "sha_name=$SHA_NAME" >> $GITHUB_OUTPUT
 
-      - name: 5. 📝 Generate MODULE.bazel.override with archive_override
+      - name: 5. 📝 Generate MODULE.bazel with archive_override for tarball
         id: generate_override
         run: |
-          OVERRIDE_FILE="MODULE.bazel.override"
-          python3 .github/workflows/convert_to_archive_override.py > "$OVERRIDE_FILE"
-          echo "override_file=$OVERRIDE_FILE" >> $GITHUB_OUTPUT
+          # Generate archive_override version
+          python3 .github/workflows/convert_to_archive_override.py > MODULE.bazel.new
 
-      - name: 6. 🚀 Publish GitHub Release
+          # Keep original for reference
+          cp MODULE.bazel MODULE.bazel.git_override
+
+          # Replace MODULE.bazel in tarball with archive_override version
+          mv MODULE.bazel.new MODULE.bazel
+
+          # Also create MODULE.bazel.override for standalone download
+          cp MODULE.bazel MODULE.bazel.override
+
+          echo "override_file=MODULE.bazel.override" >> $GITHUB_OUTPUT
+          echo "git_override_file=MODULE.bazel.git_override" >> $GITHUB_OUTPUT
+
+      - name: 6. 📦 Re-create Tarball with archive_override MODULE.bazel
+        id: repackage
+        run: |
+          TAR_NAME="${{ steps.package.outputs.tar_name }}"
+          echo "Re-creating tarball with archive_override MODULE.bazel..."
+
+          # Remove old tarball
+          rm "$TAR_NAME"
+
+          # Create new tarball with updated MODULE.bazel
+          tar --exclude=.git \
+              --exclude=.github \
+              --exclude=MODULE.bazel.git_override \
+              -czvf "../$TAR_NAME" .
+
+          # Move tarball back
+          mv "../$TAR_NAME" .
+
+      - name: 7. 🧮 Recalculate Integrity Hash
+        id: resha
+        run: |
+          TAR_NAME="${{ steps.package.outputs.tar_name }}"
+          SHA_NAME="${TAR_NAME}.sha256"
+
+          # Recalculate integrity for new tarball
+          BASE64_HASH=$(sha256sum "$TAR_NAME" | cut -d' ' -f1 | xxd -r -p | base64 -w0)
+          INTEGRITY_STRING="sha256-${BASE64_HASH}"
+
+          echo "Updated Integrity: $INTEGRITY_STRING"
+          echo "$INTEGRITY_STRING" > "$SHA_NAME"
+
+      - name: 8. 🚀 Publish GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # Get updated integrity hash
+          INTEGRITY_STRING=$(cat "${{ steps.package.outputs.tar_name }}.sha256")
+
           # 准备 Release Notes
           NOTES=$(cat <<EOF
           Automated release for commit \`${{ github.sha }}\`.
 
           ---
 
-          ### 🎯 For Development (git_override)
+          ### 📦 What's Included
 
-          Use the regular \`MODULE.bazel\` file in the repository for development.
+          This release provides a **production-ready** rules_hdl snapshot with \`archive_override\` for faster CI builds.
 
-          ### 🚀 For Production/CI (archive_override)
+          - **Tarball**: Contains \`MODULE.bazel\` with \`archive_override\` for tools without submodules
+          - **Integrity Hash**: SHA256 integrity for Bazel bzlmod
+          - **MODULE.bazel.override**: Same as tarball's MODULE.bazel (for reference)
+          - **MODULE.bazel.git_override**: Original MODULE.bazel with \`git_override\` (for development)
 
-          Download and use \`MODULE.bazel.override\` from this release for faster CI builds:
-
-          \`\`\`bash
-          # Replace your MODULE.bazel with the archive_override version
-          curl -L "https://github.com/${{ github.repository }}/releases/download/${{ steps.generate_tag.outputs.tag_name }}/MODULE.bazel.override" > MODULE.bazel
-          \`\`\`
-
-          Or reference this rules_hdl snapshot:
+          ### 🚀 Usage in Your Project
 
           \`\`\`bzl
+          bazel_dep(name = "rules_hdl", version = "0.0.1")
           archive_override(
               module_name = "rules_hdl",
               urls = ["https://github.com/${{ github.repository }}/releases/download/${{ steps.generate_tag.outputs.tag_name }}/${{ steps.package.outputs.tar_name }}"],
-              integrity = "${{ steps.sha.outputs.integrity_string }}",
+              integrity = "${INTEGRITY_STRING}",
           )
           \`\`\`
 
-          **Note:** Some tools with git submodules (yosys, nextpnr, prjtrellis) still use git_override.
-          For full archive-only builds, those tools need their own CI releases.
+          ### 🔧 What's Optimized
+
+          - ✅ Tools **without** submodules use \`archive_override\` (faster CI):
+            \`swig\`, \`iverilog\`, \`icestorm\`, \`abc\`, \`ncurses\`, \`lemon\`, \`p7zip\`, \`cxxopts\`, \`tcl\`, \`llvm-project\`, \`openroad\`
+
+          - ⚠️  Tools **with** submodules still use \`git_override\` (pending CI):
+            \`yosys\`, \`nextpnr\`, \`prjtrellis\`
+
+          ### 📝 For Development
+
+          If you want git_override for development, download \`MODULE.bazel.git_override\` and use it as \`MODULE.bazel\`.
           EOF
           )
 
@@ -121,6 +172,7 @@ jobs:
               --title "Snapshot ${{ steps.generate_tag.outputs.tag_name }}" \
               "${{ steps.package.outputs.tar_name }}" \
               "${{ steps.sha.outputs.sha_name }}" \
-              "${{ steps.generate_override.outputs.override_file }}"
+              "${{ steps.generate_override.outputs.override_file }}" \
+              "${{ steps.generate_override.outputs.git_override_file }}"
 
           echo "✅ Release created successfully!"
